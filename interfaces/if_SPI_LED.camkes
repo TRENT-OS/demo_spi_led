@@ -1,0 +1,10 @@
+procedure if_SPI_LED {
+    include "OS_Error.h";
+    include "stdint.h";
+
+    OS_Error_t displayChar(in unsigned char character);
+
+    OS_Error_t clearLEDMatrix();
+
+    OS_Error_t scrollText();
+};

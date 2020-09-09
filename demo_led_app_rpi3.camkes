@@ -1,0 +1,37 @@
+import <std_connector.camkes>;
+
+import <if_OS_Timer.camkes>;
+import "interfaces/if_SPI_LED.camkes";
+#include "system_config.h"
+
+#include "components/RPI_SPI_LED/RPI_SPI_LED.camkes";
+DECLARE_COMPONENT_RPI_SPI_LED_DRV(LED)
+
+#include "TimeServer/camkes/TimeServer.camkes"
+DECLARE_COMPONENT_TimeServer(TimeServer)
+
+#include "components/Client/Client.camkes";
+DECLARE_COMPONENT_CLIENT(Client);
+
+assembly{
+    composition{
+        component Client client;
+
+        DECLARE_AND_CONNECT_INSTANCE_RPI_SPI_LED(LED, led)
+
+        connection seL4RPCCall conn(from client.led_rpc, to led.led_rpc);
+
+        //----------------------------------------------------------------------
+        // TimeServer
+        //----------------------------------------------------------------------
+        DECLARE_AND_CONNECT_INSTANCE_TimeServer(
+            TimeServer,
+            timeServer,
+            led.timeServer_rpc
+        )
+    }
+
+    configuration{
+        CONFIGURE_INSTANCE_RPI_SPI_LED(led)
+    }
+}

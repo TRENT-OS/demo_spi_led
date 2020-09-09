@@ -1,0 +1,8 @@
+import "interfaces/if_SPI_LED.camkes";
+
+#define DECLARE_COMPONENT_CLIENT(_type_) \
+    \
+    component _type_ { \
+        control; \
+        uses if_SPI_LED led_rpc; \
+    }
