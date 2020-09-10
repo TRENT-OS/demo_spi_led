@@ -1,5 +1,5 @@
 /*
- * RasPi SPI Flash storage driver
+ * RasPi SPI LED driver
  *
  * Copyright (C) 2020, HENSOLDT Cyber GmbH
  */
@@ -25,80 +25,6 @@ static struct
 {
     .init_ok       = false,
 };
-
-/**
- * @brief Look-up of bit pattern for a specific character.
- * 
- * @details Switch statement simulates lookup table for specific characters and sets the data
- * to the according bit pattern to be displayed by a 8x8 LED matrix.
- * 
- * @param data          pointer to memory location that stores the bit pattern.
- * @param length        number of elements that are allocated to data.
- * @param character     character that will be translated into bit pattern.
- */
-void set_bytes(uint8_t * data, const uint32_t length, char character){
-    uint8_t * tmp;
-    switch (character)
-    {
-    case 'H':
-        tmp = (uint8_t[8]){
-            0x00,0x66,0x66,0x66,0x7e,0x66,0x66,0x66
-        };
-        break;
-
-    case 'E':
-        tmp = (uint8_t[8]){
-            0x00,0x7e,0x60,0x60,0x7c,0x60,0x60,0x7e
-        };
-        break;
-
-    case 'N':
-        tmp = (uint8_t[8]){
-            0x00,0x63,0x73,0x7b,0x6f,0x67,0x63,0x63
-        };
-        break;
-
-    case 'S':
-        tmp = (uint8_t[8]){
-            0x00,0x3c,0x66,0x60,0x3c,0x06,0x66,0x3c
-        };
-        break;
-
-    case 'O':
-        tmp = (uint8_t[8]){
-            0x00,0x3c,0x66,0x66,0x66,0x66,0x66,0x3c
-        };
-        break;
-
-    case 'L':
-        tmp = (uint8_t[8]){
-            0x00,0x60,0x60,0x60,0x60,0x60,0x60,0x7e
-        };
-        break;
-
-    case 'D':
-        tmp = (uint8_t[8]){
-            0x00,0x7c,0x66,0x66,0x66,0x66,0x66,0x7c
-        };
-        break;
-
-    case 'T':
-        tmp = (uint8_t[8]){
-            0x00,0x7e,0x5a,0x18,0x18,0x18,0x18,0x18
-        };
-        break;
-
-    default:
-        tmp = (uint8_t[8]){
-            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-        };
-        break;
-    }
-    for (size_t i = 0; i < length; i++)
-    {
-        data[i] = tmp[i];
-    }
-}
 
 /**
  * @brief Transfers data to the bcm2837 specific driver layers.
@@ -221,10 +147,17 @@ void post_init(void)
 }
 
 
-//------------------------------------------------------------------------------
-// This is a CAmkES RPC interface handler. It's guaranteed that "written"
-// never points to NULL.
-// With these functions, it is possible for the main program to talk to the LED matrix
+/**
+ * @brief Displays specific character on specific device.
+ * 
+ * @details CAmkES RPC interface handler. The main program (with the run function) can call
+ *          this function.
+ * 
+ * @param character     character that should be displayed
+ * @param device        device to write to
+ * 
+ * @return  Implementation specific.
+ */ 
 OS_Error_t 
 __attribute__((__nonnull__))
 led_rpc_display_char_on_device(
@@ -242,7 +175,7 @@ led_rpc_display_char_on_device(
     
     int32_t ret = 0;
     uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
-    set_bytes(bytes,8,character);
+    set_bit_pattern(bytes,8,character);
     for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
     {
         ret |= write_digit(&(ctx.spi_led_ctx),device,(j+1),bytes[j]);
@@ -259,9 +192,15 @@ led_rpc_display_char_on_device(
 }
 
 /**
- * @brief Displays a character on the LED matrix.
- * @return Implementation specific. 
- */
+ * @brief Displays specific character on all devices.
+ * 
+ * @details CAmkES RPC interface handler. The main program (with the run function) can call
+ *          this function.
+ * 
+ * @param character     character that should be displayed
+ * 
+ * @return Implementation specific.
+ */ 
 OS_Error_t 
 __attribute__((__nonnull__))
 led_rpc_display_char(
@@ -278,7 +217,7 @@ led_rpc_display_char(
 
     int32_t ret = 0;
     uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
-    set_bytes(bytes,8,character);
+    set_bit_pattern(bytes,8,character);
     for (size_t device = 0; device < ctx.spi_led_ctx.cfg->device_number; device++)
     {
         for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
@@ -298,9 +237,13 @@ led_rpc_display_char(
 }
 
 /**
- * @brief Clears the LED matrix.
- * @return Implementation specific. 
- */
+ * @brief Clears entire display.
+ * 
+ * @details CAmkES RPC interface handler. The main program (with the run function) can call
+ *          this function.
+ * 
+ * @return Implementation specific.
+ */ 
 OS_Error_t
 __attribute__((__nonnull__))
 led_rpc_clear_display(void)
@@ -319,9 +262,15 @@ led_rpc_clear_display(void)
 }
 
 /**
- * @brief Scrolls text one column to the left.
- * @return Implementation specific. 
- */
+ * @brief Scrolls text to the left.
+ * 
+ * @details CAmkES RPC interface handler. The main program (with the run function) can call
+ *          this function.
+ * 
+ * @param text      text that should be scrolled over the display
+ * 
+ * @return Implementation specific.
+ */ 
 OS_Error_t
 __attribute__((__nonnull__))
 led_rpc_scroll_text(
@@ -337,19 +286,24 @@ led_rpc_scroll_text(
     }
 
     int32_t ret = 0;
-    /**
-     * buf:
+
+    /*
+     * buf: Data structure that stores the current bit pattern of the different LEDs on the 8x8 LED matrix.
+     *      Data is shifted for each digit to the left.
+     * 
+     * Structure:
      *      digit0 - device4 | digit0 - device3 | digit0 - device2 | digit0 - device1 
-     *      digit1 - device4 | ..
-     **/
-    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
+     *      digit1 - device4 | ...
+     */
     uint8_t num_devices = ctx.spi_led_ctx.cfg->device_number; 
     uint8_t * buf = (uint8_t *)malloc(num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
     memset(buf,0,num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
+
+    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
     
     for (size_t letter = 0; letter < strlen(text); letter++) //go through all the letters
     {
-        set_bytes(bytes,8,text[letter]);
+        set_bit_pattern(bytes,8,text[letter]);
         for (int8_t shift = 7; shift >= 0; shift--) //shift each letter into the buf
         {
             for (size_t digit = 0; digit < MAX7219_DIGIT_7; digit++) //make this for every digit
@@ -359,8 +313,8 @@ led_rpc_scroll_text(
                     buf[(digit * num_devices) + dev_loc] = (buf[(digit * num_devices) + dev_loc] << 1) //shift data one-bit to the left...
                                                           | (((buf[(digit * num_devices) + dev_loc + 1]) & (1 << 7)) > 0); //... and fill with msb bit of previous device
                 }
-                buf[(digit * num_devices) + num_devices - 1] = (buf[(digit * num_devices) + num_devices - 1] << 1)
-                                                               | (((bytes[digit]) & (1 << shift)) > 0);
+                buf[(digit * num_devices) + num_devices - 1] = (buf[(digit * num_devices) + num_devices - 1] << 1) //shift data one-bit to the left ...
+                                                               | (((bytes[digit]) & (1 << shift)) > 0); //... and fill with according bit of current character
                 //print current content of buf
                 for (size_t device = 1; device <= num_devices; device++)
                 {
@@ -382,7 +336,7 @@ led_rpc_scroll_text(
                     buf[(digit * num_devices) + dev_loc] = (buf[(digit * num_devices) + dev_loc] << 1)
                                                           | (((buf[(digit * num_devices) + dev_loc + 1]) & (1 << 7)) > 0);
                 }
-                buf[(digit * num_devices) + num_devices - 1] = (buf[(digit * num_devices) + num_devices - 1] << 1);
+                buf[(digit * num_devices) + num_devices - 1] = (buf[(digit * num_devices) + num_devices - 1] << 1); //let all the data just be pushed out
                 //print current content of buf
                 for (size_t device = 1; device <= num_devices; device++)
                 {

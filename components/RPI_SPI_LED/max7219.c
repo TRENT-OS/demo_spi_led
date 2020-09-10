@@ -1,6 +1,6 @@
 #include "max7219.h"                                  
 
-static uint8_t _num_devices;
+static const uint8_t _num_devices = 4;
 //static uint8_t buffer[23768]; or put in config object
 
 void Max7219_Init(spiled_t* spi,
@@ -10,7 +10,7 @@ void Max7219_Init(spiled_t* spi,
     memset(spi, 0, sizeof(spiled_t));
     spi->cfg = cfg;
     spi->hal = hal;
-    _num_devices = spi->cfg->device_number;
+    //_num_devices = spi->cfg->device_number;
 
     init_display(spi);
     enable_display(spi);
@@ -29,7 +29,7 @@ int32_t set_num_devices(uint8_t num_devices)
     
     if(num_devices > 0)
     {
-        _num_devices = num_devices;
+        //_num_devices = num_devices;
         rtn_val = _num_devices;
     }
     
@@ -347,7 +347,9 @@ int32_t write_digit(spiled_t* spi, uint8_t device_number, uint8_t digit, uint8_t
         else
         {
             int32_t num_bytes = 2 * _num_devices;
-            uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
+            //uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
+            uint8_t d[num_bytes];
+            memset(d,0,num_bytes); 
             for(idx = _num_devices; idx > 0; idx--)
             {
                 if(idx == device_number)
@@ -364,7 +366,7 @@ int32_t write_digit(spiled_t* spi, uint8_t device_number, uint8_t digit, uint8_t
             spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
             spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
             spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
-            free(d);
+            //free(d);
             
             rtn_val = 0;
         }
@@ -515,5 +517,75 @@ void display_all_off(spiled_t* spi)
         {
             write_digit(spi,(idx + 1), (idy + 1), 0);
         }
+    }
+}
+
+void set_bit_pattern(uint8_t * data, const uint32_t length, char character){
+    uint8_t * tmp;
+    switch (character)
+    {
+    case 'A':
+        tmp = (uint8_t[8]){
+            0x00,0x3c,0x66,0x66,0x7e,0x66,0x66,0x66
+        };
+        break;
+    
+    case 'D':
+        tmp = (uint8_t[8]){
+            0x00,0x7c,0x66,0x66,0x66,0x66,0x66,0x7c
+        };
+        break;
+
+    case 'E':
+        tmp = (uint8_t[8]){
+            0x00,0x7e,0x60,0x60,0x7c,0x60,0x60,0x7e
+        };
+        break;
+
+    case 'H':
+        tmp = (uint8_t[8]){
+            0x00,0x66,0x66,0x66,0x7e,0x66,0x66,0x66
+        };
+        break;
+
+    case 'L':
+        tmp = (uint8_t[8]){
+            0x00,0x60,0x60,0x60,0x60,0x60,0x60,0x7e
+        };
+        break;
+
+    case 'N':
+        tmp = (uint8_t[8]){
+            0x00,0x63,0x73,0x7b,0x6f,0x67,0x63,0x63
+        };
+        break;
+
+    case 'O':
+        tmp = (uint8_t[8]){
+            0x00,0x3c,0x66,0x66,0x66,0x66,0x66,0x3c
+        };
+        break;
+
+    case 'S':
+        tmp = (uint8_t[8]){
+            0x00,0x3c,0x66,0x60,0x3c,0x06,0x66,0x3c
+        };
+        break;
+
+    case 'T':
+        tmp = (uint8_t[8]){
+            0x00,0x7e,0x5a,0x18,0x18,0x18,0x18,0x18
+        };
+        break;
+
+    default:
+        tmp = (uint8_t[8]){
+            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+        };
+        break;
+    }
+    for (size_t i = 0; i < length; i++)
+    {
+        data[i] = tmp[i];
     }
 }

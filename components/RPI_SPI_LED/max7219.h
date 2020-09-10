@@ -464,4 +464,16 @@ void display_all_off(
     spiled_t* spi
 );
 
+/**
+ * @brief Look-up of bit pattern for a specific character.
+ * 
+ * @details Switch statement simulates lookup table for specific characters and sets the data
+ * to the according bit pattern to be displayed by a 8x8 LED matrix.
+ * 
+ * @param data          pointer to memory location that stores the bit pattern.
+ * @param length        number of elements that are allocated to data.
+ * @param character     character that will be translated into bit pattern.
+ */
+void set_bit_pattern(uint8_t * data, const uint32_t length, char character);
+
 #endif /* MAX7219_H*/
