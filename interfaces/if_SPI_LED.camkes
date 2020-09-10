@@ -2,9 +2,12 @@ procedure if_SPI_LED {
     include "OS_Error.h";
     include "stdint.h";
 
-    OS_Error_t displayChar(in unsigned char character);
+    OS_Error_t scroll_text(in string text);
 
-    OS_Error_t clearLEDMatrix();
+    OS_Error_t display_char(in unsigned char character);
 
-    OS_Error_t scrollText();
+    OS_Error_t display_char_on_device(in unsigned char character, in uint8_t device);
+    
+    OS_Error_t clear_display();
+
 };

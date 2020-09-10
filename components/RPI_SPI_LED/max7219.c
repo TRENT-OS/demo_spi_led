@@ -1,14 +1,8 @@
-/*
-*********************************************************************************************************
-* Include Header Files
-*********************************************************************************************************
-*/
-#include "max7219.h"                                  // MAX7219 header file
-#include <stdlib.h>
+#include "max7219.h"                                  
 
-uint8_t _num_devices;
+static uint8_t _num_devices;
+//static uint8_t buffer[23768]; or put in config object
 
-//*********************************************************************
 void Max7219_Init(spiled_t* spi,
                     const spiled_config_t* cfg,
                     const spiled_hal_t* hal)
@@ -18,27 +12,15 @@ void Max7219_Init(spiled_t* spi,
     spi->hal = hal;
     _num_devices = spi->cfg->device_number;
 
-    /*for (size_t i = 0; i < _num_devices; i++)
-    {
-        init_device(spi,(i+1));
-        enable_device(spi,(i+1));
-    }*/
     init_display(spi);
     enable_display(spi);
-    /*for (size_t i = 0; i < _num_devices; i++)
-    {
-        for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
-        {
-            write_digit(spi,(i+1),(j+1),0x00);
-        }
-    }
-    spi->hal->_spiled_wait(spi,1000);*/    
+    
     set_display_test(spi);
-    spi->hal->_spiled_wait(spi,1000000);
+    spi->hal->_spiled_wait(spi,100);
     clear_display_test(spi);
-    spi->hal->_spiled_wait(spi,1000000);
+    spi->hal->_spiled_wait(spi,100);
     display_all_off(spi);
-    spi->hal->_spiled_wait(spi,1000000);
+    spi->hal->_spiled_wait(spi,100);
 }
 
 int32_t set_num_devices(uint8_t num_devices)
@@ -58,7 +40,6 @@ void set_display_test(spiled_t* spi)
 {
     uint8_t idx = 0;
     
-    //_p_cs->write(0); 
     int32_t num_bytes = 2 * _num_devices;
     uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
     for(idx = _num_devices; idx > 0; idx--)
@@ -66,7 +47,6 @@ void set_display_test(spiled_t* spi)
         d[(_num_devices - idx) * 2] = (uint8_t) MAX7219_DISPLAY_TEST;
         d[(_num_devices - idx) * 2 + 1] = 1;
     }
-    //_p_cs->write(1); 
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
     spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -77,7 +57,6 @@ void clear_display_test(spiled_t* spi)
 {
     uint8_t idx = 0;
     
-    //_p_cs->write(0); 
     int32_t num_bytes = 2 * _num_devices;
     uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
     for(idx = _num_devices; idx > 0; idx--)
@@ -85,7 +64,6 @@ void clear_display_test(spiled_t* spi)
         d[(_num_devices - idx) * 2] = (uint8_t) MAX7219_DISPLAY_TEST;
         d[(_num_devices - idx) * 2 + 1] = 0;
     }
-    //_p_cs->write(1); 
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
     spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -108,6 +86,7 @@ int32_t init_device(spiled_t* spi, uint8_t device_number)
     }
     else
     {
+        //write DECODE_MODE register of device
         int32_t num_bytes = 2 * _num_devices;
         uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
         for(idx = _num_devices; idx > 0; idx--)
@@ -123,18 +102,13 @@ int32_t init_device(spiled_t* spi, uint8_t device_number)
                 d[(_num_devices - idx) * 2 + 1] = (uint8_t) 0;
             }
         }
-        //_p_cs->write(1); 
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
         spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
-        //write DECODE_MODE register of device
-        //_p_cs->write(0); 
         
-        //wait_us(1);
         spi->hal->_spiled_wait(spi,(uint32_t) 1);
         
         //write INTENSITY register of device
-        //_p_cs->write(0); 
         for(idx = _num_devices; idx > 0; idx--)
         {
             if(idx == device_number)
@@ -152,7 +126,6 @@ int32_t init_device(spiled_t* spi, uint8_t device_number)
         spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
         
-        //wait_us(1);
         spi->hal->_spiled_wait(spi,(uint32_t) 1);
         
         //write SCAN_LIMT register of device
@@ -173,7 +146,6 @@ int32_t init_device(spiled_t* spi, uint8_t device_number)
         spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
         
-        //wait_us(1);
         spi->hal->_spiled_wait(spi,(uint32_t) 1);
         free(d);
 
@@ -184,13 +156,11 @@ int32_t init_device(spiled_t* spi, uint8_t device_number)
 }
 
 
-//*********************************************************************
 void init_display(spiled_t* spi)
 {
     uint8_t idx = 0;
     
     //write DECODE_MODE register of all devices
-    //_p_cs->write(0); 
     int32_t num_bytes = 2 * _num_devices;
     uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
     for(idx = _num_devices; idx > 0; idx--)
@@ -198,22 +168,18 @@ void init_display(spiled_t* spi)
         d[(_num_devices - idx) * 2] = (uint8_t) MAX7219_DECODE_MODE;
         d[(_num_devices - idx) * 2 + 1] = spi->cfg->decode_mode;
     }
-    //_p_cs->write(1); 
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
     spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
     
-    //wait_us(1);
     spi->hal->_spiled_wait(spi,(uint32_t) 1);
     
     //write INTENSITY register of all devices
-    //_p_cs->write(0); 
     for(idx = _num_devices; idx > 0; idx--)
     {
         d[(_num_devices - idx) * 2] = (uint8_t) MAX7219_INTENSITY;
         d[(_num_devices - idx) * 2 + 1] = spi->cfg->intensity;
     }
-    //_p_cs->write(1); 
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
     spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -221,23 +187,19 @@ void init_display(spiled_t* spi)
     spi->hal->_spiled_wait(spi,(uint32_t) 1);
     
     //write SCAN_LIMT register of all devices
-    //_p_cs->write(0); 
     for(idx = _num_devices; idx > 0; idx--)
     {
         d[(_num_devices - idx) * 2] = (uint8_t) MAX7219_SCAN_LIMIT;
         d[(_num_devices - idx) * 2 + 1] = spi->cfg->scan_limit;
     }
-    //_p_cs->write(1); 
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
     spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
     
-    //wait_us(1);
     spi->hal->_spiled_wait(spi,(uint32_t) 1);
     free(d);
 }
 
-//*********************************************************************
 int32_t enable_device(spiled_t* spi, uint8_t device_number)
 {
     int32_t rtn_val = -1;
@@ -254,7 +216,6 @@ int32_t enable_device(spiled_t* spi, uint8_t device_number)
     }
     else
     {
-        //_p_cs->write(0); 
         int32_t num_bytes = 2 * _num_devices;
         uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
         for(idx = _num_devices; idx > 0; idx--)
@@ -270,7 +231,6 @@ int32_t enable_device(spiled_t* spi, uint8_t device_number)
                 d[(_num_devices - idx) * 2 + 1] = (uint8_t) 0;
             }
         }
-        //_p_cs->write(1); 
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
         spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -283,8 +243,6 @@ int32_t enable_device(spiled_t* spi, uint8_t device_number)
 }
 
 
-
-//*********************************************************************    
 int32_t disable_device(spiled_t* spi, uint8_t device_number)
 {
     int32_t rtn_val = -1;
@@ -316,7 +274,6 @@ int32_t disable_device(spiled_t* spi, uint8_t device_number)
                 d[(_num_devices - idx) * 2 + 1] = (uint8_t) 0;
             }
         }
-        //_p_cs->write(1); 
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
         spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
         spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -328,12 +285,11 @@ int32_t disable_device(spiled_t* spi, uint8_t device_number)
     return(rtn_val);
 }
 
-//*********************************************************************
+
 void enable_display(spiled_t* spi)
 {
     uint8_t idx = 0;
     
-    //_p_cs->write(0); 
     int32_t num_bytes = 2 * _num_devices;
     uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
     for(idx = _num_devices; idx > 0; idx--)
@@ -341,7 +297,6 @@ void enable_display(spiled_t* spi)
         d[(_num_devices - idx) * 2] = (uint8_t) MAX7219_SHUTDOWN;
         d[(_num_devices - idx) * 2 + 1] = 1;
     }
-    //_p_cs->write(1); 
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
     spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -349,12 +304,10 @@ void enable_display(spiled_t* spi)
 }
     
 
-//*********************************************************************    
 void disable_display(spiled_t* spi)
 {
     uint8_t idx = 0;
     
-    //_p_cs->write(0); 
     int32_t num_bytes = 2 * _num_devices;
     uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
     for(idx = _num_devices; idx > 0; idx--)
@@ -362,14 +315,12 @@ void disable_display(spiled_t* spi)
         d[(_num_devices - idx) * 2] = (uint8_t) MAX7219_SHUTDOWN;
         d[(_num_devices - idx) * 2 + 1] = 0;
     }
-    //_p_cs->write(1); 
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
     spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
     spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
     free(d);
 }
 
-//********************************************************************* 
 int32_t write_digit(spiled_t* spi, uint8_t device_number, uint8_t digit, uint8_t data)
 {
     int32_t rtn_val = -1;
@@ -395,7 +346,6 @@ int32_t write_digit(spiled_t* spi, uint8_t device_number, uint8_t digit, uint8_t
         }
         else
         {
-            //_p_cs->write(0); 
             int32_t num_bytes = 2 * _num_devices;
             uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
             for(idx = _num_devices; idx > 0; idx--)
@@ -411,7 +361,6 @@ int32_t write_digit(spiled_t* spi, uint8_t device_number, uint8_t digit, uint8_t
                     d[(_num_devices - idx) * 2 + 1] = (uint8_t) 0;
                 }
             }
-            //_p_cs->write(1); 
             spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
             spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
             spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -425,7 +374,6 @@ int32_t write_digit(spiled_t* spi, uint8_t device_number, uint8_t digit, uint8_t
 }
     
 
-//*********************************************************************     
 int32_t clear_digit(spiled_t* spi, uint8_t device_number, uint8_t digit)
 {
     int32_t rtn_val = -1;
@@ -451,7 +399,6 @@ int32_t clear_digit(spiled_t* spi, uint8_t device_number, uint8_t digit)
         }
         else
         {
-            //_p_cs->write(0);
             int32_t num_bytes = 2 * _num_devices;
             uint8_t * d = (uint8_t *)malloc(num_bytes * sizeof(uint8_t));
             for(idx = _num_devices; idx > 0; idx--)
@@ -467,7 +414,6 @@ int32_t clear_digit(spiled_t* spi, uint8_t device_number, uint8_t digit)
                     d[(_num_devices - idx) * 2 + 1] = (uint8_t) 0;
                 }
             }
-            //_p_cs->write(1); 
             spi->hal->_spiled_spi_cs(spi,(uint8_t) 1);
             spi->hal->_spiled_spi_txrx(spi,d,num_bytes);
             spi->hal->_spiled_spi_cs(spi,(uint8_t) 0);
@@ -481,7 +427,6 @@ int32_t clear_digit(spiled_t* spi, uint8_t device_number, uint8_t digit)
 }
 
 
-//********************************************************************* 
 int32_t device_all_on(spiled_t* spi, uint8_t device_number)
 {
     int32_t rtn_val = -1;
@@ -513,7 +458,6 @@ int32_t device_all_on(spiled_t* spi, uint8_t device_number)
 }
 
 
-//********************************************************************* 
 int32_t device_all_off(spiled_t* spi, uint8_t device_number)
 {
     int32_t rtn_val = -1;

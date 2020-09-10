@@ -30,14 +30,14 @@
 * property whatsoever. Maxim Integrated Products, Inc. retains all
 * ownership rights.
 **********************************************************************/
-
+//modified version from https://os.mbed.com/teams/Maxim-Integrated/code/MAX7219/
 
 #ifndef MAX7219_H
 #define MAX7219_H
 
 #include <stdint.h>
 #include <string.h>
-
+#include <stdlib.h>
 
 #ifndef _SPILED_ERR_BASE
 #define _SPILED_ERR_BASE            (-24000)
@@ -181,24 +181,20 @@ typedef enum
 
 struct spiled_s;
 /**
- * Defines the hardware abstraction layer for the spi flash driver.
+ * Defines the hardware abstraction layer for the spi led driver.
  */
 typedef struct spiled_hal_s
 {
     /**
      * Carry out a spi transaction.
      * First, if tx_len > 0, tx_data is to be transmitted from tx_data.
-     * Then, if rx_len > 0, rx_data is to be received into rx_data.
-     * This function is called when the spi flash driver needs to communicate on
-     * the SPI bus. When the transaction is finished, spiflash_async_cb is to be
-     * called in asynchronous mode.
-     * In synchronous mode, this must block.
+     * This function is called when the spi led driver needs to communicate on
+     * the SPI bus. 
+     * Due to the nature of the communication, we only want to write to the registers.
      *
      * @param spi      pointer to the spi flash driver struct.
      * @param tx_data  data to be transmitted, ignored if tx_len == 0.
      * @param tx_len   length of data to be transmitted.
-     * @param rx_data  data to be received, ignored if rx_len == 0.
-     * @param rx_len   length of data to be received.
      * @return 0 if ok, anything else is considered an error.
      */
     int (*_spiled_spi_txrx)(struct spiled_s* spi, const uint8_t* tx_data,
@@ -210,24 +206,22 @@ typedef struct spiled_hal_s
      * parameter cs is zero, CS pin should be deasserted (normally means the pin
      * should be at Vddio level, high).
      *
-     * @param spi  pointer to the spi flash driver struct.
+     * @param spi  pointer to the spi led driver struct.
      * @param cs   !0 to assert CS, 0 to deassert CS.
      */
     void (*_spiled_spi_cs)(struct spiled_s* spi, uint8_t cs);
 
     /**
      * Wait given number of milliseconds.
-     * When the timeout is reached, spiflash_async_trigger is to be called in
-     * asynchronous mode.
-     * In synchronous mode, this must block given number of milliseconds.
      *
      * @param spi  pointer to the spi flash driver struct.
+     * @param us   number of us to wait.
      */
     void (*_spiled_wait)(struct spiled_s* spi, uint32_t us);
 } spiled_hal_t;
 
 /**
- * The spi flash driver struct.
+ * The spi led driver struct.
  */
 typedef struct spiled_s
 {
@@ -237,51 +231,156 @@ typedef struct spiled_s
     const spiled_hal_t* hal;
 } spiled_t;
 
+/**
+ * @brief   Initializes the spi object and configures the led display.
+ * 
+ * @details
+ * 
+ * @param spi   pointer to the spi object.
+ * @param cfg   configuration object that holds configuration information.
+ * @param hal   enables the higher software layer to communicate with the ones below.
+ */
 void Max7219_Init(
     spiled_t* spi,
     const spiled_config_t* cfg,
     const spiled_hal_t* hal
 );
 
+/**
+ * @brief Sets the number of max7219 devices being used. Defaults to one.
+ * 
+ * @details
+ * 
+ * @param num_devices   number of max7219 devices being used, max of 255
+ * @return  returns number of devices
+ */
 int32_t set_num_devices(
     uint8_t num_devices
 );
 
+/**
+ * @brief Tests all devices being used.
+ * 
+ * @details Sets bit0 of DISPLAY_TEST register in all devices.
+ * 
+ * @param spi   pointer to spi object
+ */
 void set_display_test(
     spiled_t* spi
 );
 
+/**
+ * @brief Stops test
+ * 
+ * @details Clear bit0 of DISPLAY_TEST register in all devices.
+ * 
+ * @param spi   pointer to spi object
+ */
 void clear_display_test(
     spiled_t* spi
 );
 
+/**
+ * @brief Initializes specific device in display with given config data
+ * 
+ * @details 
+ * 
+ * @param spi               pointer to spi object
+ * @param device_number     device to be intialized
+ * 
+ * @return      Returns  0 on success
+ *              Returns -1 if device number is > _num_devices
+ *              Returns -2 if device number is 0
+ */
 int32_t init_device(
     spiled_t* spi,
     uint8_t device_number
 );
 
+/**
+ * @brief Initializes all devices with given config data
+ * 
+ * @details All devices are configured with given data
+ * 
+ * @param spi   pointer to spi object
+ */
 void init_display(
     spiled_t* spi
 );
 
+/**
+ * @brief Enables specific device in display
+ * 
+ * @details
+ * 
+ * @param spi   pointer to spi object
+ * @param device_number device to enable
+ * 
+ * @return      Returns  0 on success
+ *              Returns -1 if device number is > _num_devices
+ *              Returns -2 if device number is 0
+ */ 
 int32_t enable_device(
     spiled_t* spi,
     uint8_t device_number
 );
 
+/**
+ * @brief Disables specific device in display
+ * 
+ * @details
+ *
+ * @param spi   pointer to spi object 
+ * @param device_number     device to disable
+ * 
+ * @return      Returns  0 on success
+ *              Returns -1 if device number is > _num_devices
+ *              Returns -2 if device number is 0
+ */
 int32_t disable_device(
     spiled_t* spi,
     uint8_t device_number
 );
 
+/**
+ * @brief Enables all device in display
+ * 
+ * @details
+ * 
+ * @param spi   pointer to spi object
+ */
 void enable_display(
     spiled_t* spi
 );
 
+/**
+ * @brief Disables all devices in display
+ * 
+ * @details
+ * 
+ * @param spi   pointer to spi object
+ */
 void disable_display(
     spiled_t* spi
 );
 
+/**
+ * @brief Writes digit of given device with given data, user
+ *        must enter correct data for decode_mode chosen
+ * 
+ * @details 
+ * 
+ * @param spi   pointer to spi object
+ * @param device_number     device to write to
+ * @param digit             digit (= col) to write
+ * @param data              data to write
+ * 
+ * @return      Returns  0 on success
+ *              Returns -1 if device number is > _num_devices
+ *              Returns -2 if device number is 0
+ *              Returns -3 if digit > 8
+ *              Returns -4 if digit < 1
+ */
 int32_t write_digit(
     spiled_t* spi, 
     uint8_t device_number,
@@ -289,25 +388,78 @@ int32_t write_digit(
     uint8_t data
 );
 
+/**
+ * @brief Clears digit of given device
+ * 
+ * @details
+ * 
+ * @param spi   pointer to spi object
+ * @param device_number     device to write to
+ * @param digit             digit to clear
+ * 
+ * @return      Returns  0 on success
+ *              Returns -1 if device number is _num_devices
+ *              Returns -2 if device number is 0
+ *              Returns -3 if digit > 8
+ *              Returns -4 if digit < 1
+ */
 int32_t clear_digit(
     spiled_t* spi, 
     uint8_t device_number,
     uint8_t digit
 );
 
+/**
+ * @brief Turns on all segments/digits of given device
+ * 
+ * @details 
+ * 
+ * @param spi   pointer to spi object
+ * @param device_number device to write to
+ * 
+ * @return      Returns  0 on success
+ *              Returns -1 if device number is > _num_devices
+ *              Returns -2 if device number is 0
+ */
 int32_t device_all_on(
     spiled_t* spi,
     uint8_t device_number
 );
 
+/**
+ * @brief Turns off all segments/digits of given device
+ * 
+ * @details 
+ * 
+ * @param spi   pointer to spi object
+ * @param device_number     device to write to
+ * 
+ * @return      Returns  0 on success
+ *              Returns -1 if device number is > _num_devices
+ *              Returns -2 if device number is 0
+ */
 int32_t device_all_off(
     spiled_t* spi,
     uint8_t device_number
 );
 
+/**
+ * @brief Turns on all segments/digits of display
+ * 
+ * @details
+ * 
+ * @param spi   pointer to spi object
+ */
 void display_all_on(
     spiled_t* spi
 );
+
+/**
+ * @brief Turns off all segments/digits of display
+ * 
+ * @details
+ * 
+ */
 void display_all_off(
     spiled_t* spi
 );

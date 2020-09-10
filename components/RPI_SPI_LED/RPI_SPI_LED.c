@@ -26,54 +26,89 @@ static struct
     .init_ok       = false,
 };
 
-const uint8_t TEXT[] = {
-    0x00,0x66,0x66,0x7e,0x7e,0x66,0x66,0x00, //H
-    0x00,0x7e,0x66,0x7e,0x60,0x7e,0x7e,0x00, //E
-    0x00,0x62,0x72,0x5a,0x4a,0x4e,0x46,0x00, //N
-    0x00,0x7e,0x60,0x7e,0x06,0x06,0x7e,0x00, //S
-    0x00,0x7e,0x7e,0x66,0x66,0x7e,0x7e,0x00, //O
-    0x00,0x60,0x60,0x60,0x60,0x7e,0x7e,0x00, //L
-    0x00,0x70,0x7c,0x0e,0x0e,0x7c,0x70,0x00, //D
-    0x00,0x7e,0x7e,0x18,0x18,0x18,0x18,0x00 //T
-};
+/**
+ * @brief Look-up of bit pattern for a specific character.
+ * 
+ * @details Switch statement simulates lookup table for specific characters and sets the data
+ * to the according bit pattern to be displayed by a 8x8 LED matrix.
+ * 
+ * @param data          pointer to memory location that stores the bit pattern.
+ * @param length        number of elements that are allocated to data.
+ * @param character     character that will be translated into bit pattern.
+ */
+void set_bytes(uint8_t * data, const uint32_t length, char character){
+    uint8_t * tmp;
+    switch (character)
+    {
+    case 'H':
+        tmp = (uint8_t[8]){
+            0x00,0x66,0x66,0x66,0x7e,0x66,0x66,0x66
+        };
+        break;
 
-const uint8_t H[] = {
-    0x00,0x66,0x66,0x7e,0x7e,0x66,0x66,0x00
-};
+    case 'E':
+        tmp = (uint8_t[8]){
+            0x00,0x7e,0x60,0x60,0x7c,0x60,0x60,0x7e
+        };
+        break;
 
-const uint8_t E[] = {
-    0x00,0x7e,0x66,0x7e,0x60,0x7e,0x7e,0x00
-};
+    case 'N':
+        tmp = (uint8_t[8]){
+            0x00,0x63,0x73,0x7b,0x6f,0x67,0x63,0x63
+        };
+        break;
 
-const uint8_t N[] = {
-    0x00,0x62,0x72,0x5a,0x4a,0x4e,0x46,0x00
-};
+    case 'S':
+        tmp = (uint8_t[8]){
+            0x00,0x3c,0x66,0x60,0x3c,0x06,0x66,0x3c
+        };
+        break;
 
-const uint8_t S[] = {
-    0x00,0x7e,0x60,0x7e,0x06,0x06,0x7e,0x00
-};
+    case 'O':
+        tmp = (uint8_t[8]){
+            0x00,0x3c,0x66,0x66,0x66,0x66,0x66,0x3c
+        };
+        break;
 
-const uint8_t O[] = {
-    0x00,0x7e,0x7e,0x66,0x66,0x7e,0x7e,0x00
-};
+    case 'L':
+        tmp = (uint8_t[8]){
+            0x00,0x60,0x60,0x60,0x60,0x60,0x60,0x7e
+        };
+        break;
 
-const uint8_t L[] = {
-    0x00,0x60,0x60,0x60,0x60,0x7e,0x7e,0x00
-};
+    case 'D':
+        tmp = (uint8_t[8]){
+            0x00,0x7c,0x66,0x66,0x66,0x66,0x66,0x7c
+        };
+        break;
 
-const uint8_t D[] = {
-    0x00,0x70,0x7c,0x0e,0x0e,0x7c,0x70,0x00
-};
+    case 'T':
+        tmp = (uint8_t[8]){
+            0x00,0x7e,0x5a,0x18,0x18,0x18,0x18,0x18
+        };
+        break;
 
-const uint8_t T[] = {
-    0x00,0x7e,0x7e,0x18,0x18,0x18,0x18,0x00
-};
+    default:
+        tmp = (uint8_t[8]){
+            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+        };
+        break;
+    }
+    for (size_t i = 0; i < length; i++)
+    {
+        data[i] = tmp[i];
+    }
+}
 
-const uint8_t ZERO[] = {
-    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-};
-//------------------------------------------------------------------------------
-// callback from SPI library
+/**
+ * @brief Transfers data to the bcm2837 specific driver layers.
+ * 
+ * @details Is called by the max7219 driver files and builds the interface to the lower level driver files.
+ * 
+ * @param spi      pointer to the spi led driver struct.
+ * @param tx_data  data to be transmitted, ignored if tx_len == 0.
+ * @param tx_len   length of data to be transmitted.
+ */
 static
 __attribute__((__nonnull__))
 int
@@ -90,8 +125,14 @@ impl_spiled_spi_txrx(
 }
 
 
-//------------------------------------------------------------------------------
-// callback from SPI library
+/**
+ * @brief Selects the CS (chip select) output line.
+ * 
+ * @details Is called by the max7219 driver files and builds the interface to the lower level driver files.
+ * 
+ * @param spi      pointer to the spi led driver struct.
+ * @param cs       !0 to assert CS, 0 to deassert CS.
+ */
 static
 __attribute__((__nonnull__))
 void
@@ -104,8 +145,14 @@ impl_spiled_spi_cs(
 }
 
 
-//------------------------------------------------------------------------------
-// callback from SPI library
+/**
+ * @brief Wait given number of microseconds.
+ * 
+ * @details Is called by the max7219 driver files and builds the interface to the lower level driver files.
+ * 
+ * @param spi      pointer to the spi led driver struct.
+ * @param us       number of microseconds to wait.
+ */
 static
 __attribute__((__nonnull__))
 void
@@ -118,7 +165,12 @@ impl_spiled_wait(
     TimeServer_sleep(TimeServer_PRECISION_USEC, us);
 }
 
-//------------------------------------------------------------------------------
+/**
+ * @brief Post init function.
+ * 
+ * @details Gets called before the actual program logic starts. 
+ * Is used for any initialization that should be done before the program starts.
+ */
 void post_init(void)
 {
     Debug_LOG_INFO("BCM2837_SPI_LED init");
@@ -173,13 +225,46 @@ void post_init(void)
 // This is a CAmkES RPC interface handler. It's guaranteed that "written"
 // never points to NULL.
 // With these functions, it is possible for the main program to talk to the LED matrix
+OS_Error_t 
+__attribute__((__nonnull__))
+led_rpc_display_char_on_device(
+    unsigned char character,
+    uint8_t device
+) 
+{
+    Debug_LOG_DEBUG("SPI displayChar");
+
+    if (!ctx.init_ok)
+    {
+        Debug_LOG_ERROR("initialization failed, fail call %s()", __func__);
+        return OS_ERROR_INVALID_STATE;
+    }
+    
+    int32_t ret = 0;
+    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
+    set_bytes(bytes,8,character);
+    for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
+    {
+        ret |= write_digit(&(ctx.spi_led_ctx),device,(j+1),bytes[j]);
+    }
+    free(bytes);
+
+    if (ret != 0)
+    {
+        Debug_LOG_ERROR("SPILED_display_char_on_device() failed.");
+        return OS_ERROR_GENERIC;
+    }
+
+    return OS_SUCCESS;
+}
+
 /**
  * @brief Displays a character on the LED matrix.
  * @return Implementation specific. 
  */
 OS_Error_t 
 __attribute__((__nonnull__))
-led_rpc_displayChar(
+led_rpc_display_char(
     unsigned char character
 )
 {
@@ -192,39 +277,17 @@ led_rpc_displayChar(
     }
 
     int32_t ret = 0;
-    for (size_t i = 0; i < (sizeof(TEXT) / sizeof(TEXT[0])) / 8; i++)
+    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
+    set_bytes(bytes,8,character);
+    for (size_t device = 0; device < ctx.spi_led_ctx.cfg->device_number; device++)
     {
         for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
         {
-            ret |= write_digit(&(ctx.spi_led_ctx),1,(j+1),TEXT[i * 8 + j]);
+            ret |= write_digit(&(ctx.spi_led_ctx),(device + 1),(j+1),bytes[j]);
         }
-        ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),1000000);
     }
-    for (size_t i = 0; i < (sizeof(TEXT) / sizeof(TEXT[0])) / 8; i++)
-    {
-        for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
-        {
-            ret |= write_digit(&(ctx.spi_led_ctx),2,(j+1),TEXT[i * 8 + j]);
-        }
-        ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),1000000);
-    }
-    for (size_t i = 0; i < (sizeof(TEXT) / sizeof(TEXT[0])) / 8; i++)
-    {
-        for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
-        {
-            ret |= write_digit(&(ctx.spi_led_ctx),3,(j+1),TEXT[i * 8 + j]);
-        }
-        ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),1000000);
-    }
-    for (size_t i = 0; i < (sizeof(TEXT) / sizeof(TEXT[0])) / 8; i++)
-    {
-        for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
-        {
-            ret |= write_digit(&(ctx.spi_led_ctx),4,(j+1),TEXT[i * 8 + j]);
-        }
-        ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),1000000);
-    }
-
+    free(bytes);
+    
     if (ret != 0)
     {
         Debug_LOG_ERROR("SPILED_displayChar() failed.");
@@ -240,7 +303,7 @@ led_rpc_displayChar(
  */
 OS_Error_t
 __attribute__((__nonnull__))
-led_rpc_clearLEDMatrix(void)
+led_rpc_clear_display(void)
 {
     Debug_LOG_DEBUG("SPI clearLEDMatrix");
 
@@ -250,18 +313,8 @@ led_rpc_clearLEDMatrix(void)
         return OS_ERROR_INVALID_STATE;
     }
 
-    int32_t ret = 0;
-    for (uint8_t i = 0; i < MAX7219_DIGIT_7; i++)
-    {
-        ret |= clear_digit(&(ctx.spi_led_ctx),1,(i+1));
-    }
-    
-    if (ret != 0)
-    {
-        Debug_LOG_ERROR("SPILED_clearLEDMatrix() failed.");
-        return OS_ERROR_GENERIC;
-    }
-    
+    display_all_off(&(ctx.spi_led_ctx));
+
     return OS_SUCCESS;
 }
 
@@ -271,8 +324,76 @@ led_rpc_clearLEDMatrix(void)
  */
 OS_Error_t
 __attribute__((__nonnull__))
-led_rpc_scrollText(void)
+led_rpc_scroll_text(
+    const char * text
+)
 {
-    // TODO: still needs to be implemented
+    Debug_LOG_DEBUG("SPI displayChar");
+
+    if (!ctx.init_ok)
+    {
+        Debug_LOG_ERROR("initialization failed, fail call %s()", __func__);
+        return OS_ERROR_INVALID_STATE;
+    }
+
+    int32_t ret = 0;
+    /**
+     * buf:
+     *      digit0 - device4 | digit0 - device3 | digit0 - device2 | digit0 - device1 
+     *      digit1 - device4 | ..
+     **/
+    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
+    uint8_t num_devices = ctx.spi_led_ctx.cfg->device_number; 
+    uint8_t * buf = (uint8_t *)malloc(num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
+    memset(buf,0,num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
+    
+    for (size_t letter = 0; letter < strlen(text); letter++) //go through all the letters
+    {
+        set_bytes(bytes,8,text[letter]);
+        for (int8_t shift = 7; shift >= 0; shift--) //shift each letter into the buf
+        {
+            for (size_t digit = 0; digit < MAX7219_DIGIT_7; digit++) //make this for every digit
+            {
+                for (size_t dev_loc = 0; dev_loc < (num_devices - 1); dev_loc++) //and for every device
+                {
+                    buf[(digit * num_devices) + dev_loc] = (buf[(digit * num_devices) + dev_loc] << 1) //shift data one-bit to the left...
+                                                          | (((buf[(digit * num_devices) + dev_loc + 1]) & (1 << 7)) > 0); //... and fill with msb bit of previous device
+                }
+                buf[(digit * num_devices) + num_devices - 1] = (buf[(digit * num_devices) + num_devices - 1] << 1)
+                                                               | (((bytes[digit]) & (1 << shift)) > 0);
+                //print current content of buf
+                for (size_t device = 1; device <= num_devices; device++)
+                {
+                    ret |= write_digit(&(ctx.spi_led_ctx),device,(digit + 1),buf[(digit * num_devices) + (num_devices - device)]);
+                }
+            }
+            ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),100000);
+        }
+    }
+    //push all data out of display
+    for (size_t i = 0; i < num_devices; i++)
+    {
+        for (int8_t shift = 7; shift >= 0; shift--) //shift each letter into the buf
+        {
+            for (size_t digit = 0; digit < MAX7219_DIGIT_7; digit++) //make this for every digit
+            {
+                for (size_t dev_loc = 0; dev_loc < (num_devices - 1); dev_loc++) //and for every device
+                {
+                    buf[(digit * num_devices) + dev_loc] = (buf[(digit * num_devices) + dev_loc] << 1)
+                                                          | (((buf[(digit * num_devices) + dev_loc + 1]) & (1 << 7)) > 0);
+                }
+                buf[(digit * num_devices) + num_devices - 1] = (buf[(digit * num_devices) + num_devices - 1] << 1);
+                //print current content of buf
+                for (size_t device = 1; device <= num_devices; device++)
+                {
+                    ret |= write_digit(&(ctx.spi_led_ctx),device,(digit + 1),buf[(digit * num_devices) + (num_devices - device)]);
+                }
+            }
+            ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),100000);
+        }
+    }
+    free(bytes);
+    free(buf);
+
     return OS_SUCCESS;
 }

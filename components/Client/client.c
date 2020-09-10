@@ -1,6 +1,9 @@
 #include <camkes.h>
 
 int run(void) {
-  led_rpc_displayChar('a');
-  return 0;
+    while (1)
+    {
+        led_rpc_scroll_text("HENSOLDT");
+    }
+    return 0;
 }
