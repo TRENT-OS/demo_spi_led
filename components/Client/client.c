@@ -1,7 +1,7 @@
 #include <camkes.h>
 
 int run(void) {
-    const char * message = "Hensoldt Cyber";
+    const char * message = "Hello";
     /*led_rpc_scroll_text(message);
     led_rpc_scroll_text(message);
     led_rpc_display_char('E');

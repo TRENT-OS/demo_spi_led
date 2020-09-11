@@ -1,11 +1,19 @@
-//
-// FACE_NAME "IBM BIOS 8x8"
-//
-// 0-31,127 : Code page 437, cf. https://en.wikipedia.org/wiki/Code_page_437
-// 32-126   : ASCII
-// 160-255  : ISO-8859-1, cf. https://en.wikipedia.org/wiki/ISO/IEC_8859-1
 #include <stdint.h>
 
+/**
+ * @brief Font lookup table for 8x8 dot-matrix LED display.
+ * 
+ * @details This table is indexed by the integer representation of a char. The referenced 8 bytes 
+ *          represent the bit map that should be set for the LED display.
+ *          
+ *          More fonts available on: https://github.com/rene-d/fontino 
+ * 
+ *          Current Font:   "IBM BIOS 8x8"
+ *           
+ *          0-31,127 : Code page 437, cf. https://en.wikipedia.org/wiki/Code_page_437
+ *          32-126   : ASCII
+ *          160-255  : ISO-8859-1, cf. https://en.wikipedia.org/wiki/ISO/IEC_8859-1
+ */
 const uint8_t font8x8[224][8] = {
     // ---------------------------  0-127 ---------------------------
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},  // 0000 (uni0000.dup1)

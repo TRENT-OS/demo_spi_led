@@ -296,7 +296,7 @@ led_rpc_scroll_text(
      *      digit1 - device4 | ...
      */
     uint8_t num_devices = ctx.spi_led_ctx.cfg->device_number; 
-    uint8_t * buf = (uint8_t *)malloc(num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
+    uint8_t buf[num_devices * (MAX7219_DIGIT_7 + 1)];
     memset(buf,0,num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
 
     for (size_t letter = 0; letter < strlen(text); letter++) //go through all the letters
@@ -344,7 +344,6 @@ led_rpc_scroll_text(
             ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),100000);
         }
     }
-    free(buf);
 
     return OS_SUCCESS;
 }
