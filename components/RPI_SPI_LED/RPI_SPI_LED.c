@@ -1,9 +1,8 @@
-/*
- * RasPi SPI LED driver
- *
- * Copyright (C) 2020, HENSOLDT Cyber GmbH
+/* Copyright (C) 2020, HENSOLDT Cyber GmbH */
+/**
+ * @file
+ * @brief   SPI LED driver.
  */
-
 #include "OS_Error.h"
 #include "LibDebug/Debug.h"
 #include "TimeServer.h"
@@ -18,6 +17,9 @@
 
 #include <camkes.h>
 
+/**
+ * @brief organizational data for spi led driver.
+ */
 static struct
 {
     bool           init_ok;
@@ -27,19 +29,10 @@ static struct
     .init_ok       = false,
 };
 
-/**
- * @brief Transfers data to the bcm2837 specific driver layers.
- * 
- * @details Is called by the max7219 driver files and builds the interface to the lower level driver files.
- * 
- * @param spi      pointer to the spi led driver struct.
- * @param tx_data  data to be transmitted, ignored if tx_len == 0.
- * @param tx_len   length of data to be transmitted.
- */
 static
 __attribute__((__nonnull__))
 int
-impl_spiled_spi_txrx(
+impl_spiled_spi_writenb(
     spiled_t* spi,
     const uint8_t* tx_data,
     uint32_t tx_len)
@@ -52,14 +45,6 @@ impl_spiled_spi_txrx(
 }
 
 
-/**
- * @brief Selects the CS (chip select) output line.
- * 
- * @details Is called by the max7219 driver files and builds the interface to the lower level driver files.
- * 
- * @param spi      pointer to the spi led driver struct.
- * @param cs       !0 to assert CS, 0 to deassert CS.
- */
 static
 __attribute__((__nonnull__))
 void
@@ -72,14 +57,6 @@ impl_spiled_spi_cs(
 }
 
 
-/**
- * @brief Wait given number of microseconds.
- * 
- * @details Is called by the max7219 driver files and builds the interface to the lower level driver files.
- * 
- * @param spi      pointer to the spi led driver struct.
- * @param us       number of microseconds to wait.
- */
 static
 __attribute__((__nonnull__))
 void
@@ -92,12 +69,6 @@ impl_spiled_wait(
     TimeServer_sleep(TimeServer_PRECISION_USEC, us);
 }
 
-/**
- * @brief Post init function.
- * 
- * @details Gets called before the actual program logic starts. 
- * Is used for any initialization that should be done before the program starts.
- */
 void post_init(void)
 {
     Debug_LOG_INFO("BCM2837_SPI_LED init");
@@ -114,14 +85,14 @@ void post_init(void)
     // divider 8 gives 50 MHz assuming the RasPi3 is running with the default
     // 400 MHz, but for some reason we force it to run at just 250 MHz with
     // "core_freq=250" in config.txt and thus end up at 31.25 MHz SPI speed.
-    bcm2837_spi_setClockDivider(BCM2837_SPI_CLOCK_DIVIDER_256);
+    bcm2837_spi_setClockDivider(BCM2837_SPI_CLOCK_DIVIDER_128);
     bcm2837_spi_chipSelect(BCM2837_SPI_CS0);
     bcm2837_spi_setChipSelectPolarity(BCM2837_SPI_CS0, 0);
 
     // initialize MAX7219 SPI library
     static const spiled_config_t spiled_config =
     {
-        .device_number = 4,
+        .num_devices = 4,
         .decode_mode = 0,
         .intensity = MAX7219_INTENSITY_8,
         .scan_limit = MAX7219_SCAN_8 
@@ -129,7 +100,7 @@ void post_init(void)
 
     static const spiled_hal_t hal =
     {
-        ._spiled_spi_txrx  = impl_spiled_spi_txrx,
+        ._spiled_spi_writenb  = impl_spiled_spi_writenb,
         ._spiled_spi_cs    = impl_spiled_spi_cs,
         ._spiled_wait      = impl_spiled_wait,
     };
@@ -138,7 +109,7 @@ void post_init(void)
 
     if ( (NULL == ctx.spi_led_ctx.cfg) || (NULL == ctx.spi_led_ctx.hal) )
     {
-        Debug_LOG_ERROR("MAX7219_Init() failed");
+        Debug_LOG_ERROR("Max7219_Init() failed");
         return;
     }
 
@@ -148,17 +119,6 @@ void post_init(void)
 }
 
 
-/**
- * @brief Displays specific character on specific device.
- * 
- * @details CAmkES RPC interface handler. The main program (with the run function) can call
- *          this function.
- * 
- * @param character     character that should be displayed
- * @param device        device to write to
- * 
- * @return  Implementation specific.
- */ 
 OS_Error_t 
 __attribute__((__nonnull__))
 led_rpc_display_char_on_device(
@@ -166,7 +126,7 @@ led_rpc_display_char_on_device(
     uint8_t device
 ) 
 {
-    Debug_LOG_DEBUG("SPI displayChar");
+    Debug_LOG_DEBUG("SPI display_char_on_device()");
 
     if (!ctx.init_ok)
     {
@@ -191,23 +151,14 @@ led_rpc_display_char_on_device(
     return OS_SUCCESS;
 }
 
-/**
- * @brief Displays specific character on all devices.
- * 
- * @details CAmkES RPC interface handler. The main program (with the run function) can call
- *          this function.
- * 
- * @param character     character that should be displayed
- * 
- * @return Implementation specific.
- */ 
+
 OS_Error_t 
 __attribute__((__nonnull__))
 led_rpc_display_char(
     unsigned char character
 )
 {
-    Debug_LOG_DEBUG("SPI displayChar");
+    Debug_LOG_DEBUG("SPI display_char()");
 
     if (!ctx.init_ok)
     {
@@ -217,7 +168,7 @@ led_rpc_display_char(
 
     int32_t ret = 0;
     const uint8_t * bytes = font8x8[(uint8_t)character];
-    for (size_t device = 0; device < ctx.spi_led_ctx.cfg->device_number; device++)
+    for (size_t device = 0; device < ctx.spi_led_ctx.cfg->num_devices; device++)
     {
         for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
         {
@@ -228,26 +179,19 @@ led_rpc_display_char(
     
     if (ret != 0)
     {
-        Debug_LOG_ERROR("SPILED_displayChar() failed.");
+        Debug_LOG_ERROR("SPILED_display_char() failed.");
         return OS_ERROR_GENERIC;
     }
 
     return OS_SUCCESS;
 }
 
-/**
- * @brief Clears entire display.
- * 
- * @details CAmkES RPC interface handler. The main program (with the run function) can call
- *          this function.
- * 
- * @return Implementation specific.
- */ 
+
 OS_Error_t
 __attribute__((__nonnull__))
 led_rpc_clear_display(void)
 {
-    Debug_LOG_DEBUG("SPI clearLEDMatrix");
+    Debug_LOG_DEBUG("SPI clear_display()");
 
     if (!ctx.init_ok)
     {
@@ -261,23 +205,13 @@ led_rpc_clear_display(void)
     return OS_SUCCESS;
 }
 
-/**
- * @brief Scrolls text to the left.
- * 
- * @details CAmkES RPC interface handler. The main program (with the run function) can call
- *          this function.
- * 
- * @param text      text that should be scrolled over the display
- * 
- * @return Implementation specific.
- */ 
 OS_Error_t
 __attribute__((__nonnull__))
 led_rpc_scroll_text(
     const char * text
 )
 {
-    Debug_LOG_DEBUG("SPI displayChar");
+    Debug_LOG_DEBUG("SPI scroll_text()");
 
     if (!ctx.init_ok)
     {
@@ -295,7 +229,7 @@ led_rpc_scroll_text(
      *      digit0 - device4 | digit0 - device3 | digit0 - device2 | digit0 - device1 
      *      digit1 - device4 | ...
      */
-    uint8_t num_devices = ctx.spi_led_ctx.cfg->device_number; 
+    uint8_t num_devices = ctx.spi_led_ctx.cfg->num_devices; 
     uint8_t buf[num_devices * (MAX7219_DIGIT_7 + 1)];
     memset(buf,0,num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
 
@@ -343,6 +277,12 @@ led_rpc_scroll_text(
             }
             ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),100000);
         }
+    }
+    
+    if (ret != 0)
+    {
+        Debug_LOG_ERROR("SPILED_scroll_text() failed.");
+        return OS_ERROR_GENERIC;
     }
 
     return OS_SUCCESS;

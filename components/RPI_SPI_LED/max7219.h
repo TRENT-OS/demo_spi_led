@@ -66,7 +66,7 @@
 */
 typedef struct spiled_config_s
 {
-    uint8_t device_number;
+    uint8_t num_devices;
     uint8_t decode_mode;
     uint8_t intensity;
     uint8_t scan_limit;
@@ -186,7 +186,7 @@ struct spiled_s;
 typedef struct spiled_hal_s
 {
     /**
-     * Carry out a spi transaction.
+     * Carry out a spi write operation.
      * First, if tx_len > 0, tx_data is to be transmitted from tx_data.
      * This function is called when the spi led driver needs to communicate on
      * the SPI bus. 
@@ -197,7 +197,7 @@ typedef struct spiled_hal_s
      * @param tx_len   length of data to be transmitted.
      * @return 0 if ok, anything else is considered an error.
      */
-    int (*_spiled_spi_txrx)(struct spiled_s* spi, const uint8_t* tx_data,
+    int (*_spiled_spi_writenb)(struct spiled_s* spi, const uint8_t* tx_data,
                               uint32_t tx_len);
 
     /**
@@ -212,7 +212,7 @@ typedef struct spiled_hal_s
     void (*_spiled_spi_cs)(struct spiled_s* spi, uint8_t cs);
 
     /**
-     * Wait given number of milliseconds.
+     * Wait given number of microseconds.
      *
      * @param spi  pointer to the spi flash driver struct.
      * @param us   number of us to wait.
@@ -244,18 +244,6 @@ void Max7219_Init(
     spiled_t* spi,
     const spiled_config_t* cfg,
     const spiled_hal_t* hal
-);
-
-/**
- * @brief Sets the number of max7219 devices being used. Defaults to one.
- * 
- * @details
- * 
- * @param num_devices   number of max7219 devices being used, max of 255
- * @return  returns number of devices
- */
-int32_t set_num_devices(
-    uint8_t num_devices
 );
 
 /**
