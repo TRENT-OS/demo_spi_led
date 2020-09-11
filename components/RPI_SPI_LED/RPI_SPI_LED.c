@@ -9,6 +9,7 @@
 #include "TimeServer.h"
 #include "bcm2837_spi.h"
 #include "max7219.h"
+#include "font.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -174,13 +175,12 @@ led_rpc_display_char_on_device(
     }
     
     int32_t ret = 0;
-    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
-    set_bit_pattern(bytes,8,character);
+    const uint8_t * bytes = font8x8[(uint8_t)character];
     for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
     {
         ret |= write_digit(&(ctx.spi_led_ctx),device,(j+1),bytes[j]);
     }
-    free(bytes);
+    //ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),1000000);
 
     if (ret != 0)
     {
@@ -216,8 +216,7 @@ led_rpc_display_char(
     }
 
     int32_t ret = 0;
-    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
-    set_bit_pattern(bytes,8,character);
+    const uint8_t * bytes = font8x8[(uint8_t)character];
     for (size_t device = 0; device < ctx.spi_led_ctx.cfg->device_number; device++)
     {
         for (uint8_t j = 0; j < MAX7219_DIGIT_7; j++)
@@ -225,7 +224,7 @@ led_rpc_display_char(
             ret |= write_digit(&(ctx.spi_led_ctx),(device + 1),(j+1),bytes[j]);
         }
     }
-    free(bytes);
+    //ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),1000000);
     
     if (ret != 0)
     {
@@ -257,6 +256,7 @@ led_rpc_clear_display(void)
     }
 
     display_all_off(&(ctx.spi_led_ctx));
+    //ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),1000000);
 
     return OS_SUCCESS;
 }
@@ -299,11 +299,9 @@ led_rpc_scroll_text(
     uint8_t * buf = (uint8_t *)malloc(num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
     memset(buf,0,num_devices * (MAX7219_DIGIT_7 + 1) * sizeof(uint8_t));
 
-    uint8_t * bytes = (uint8_t *)malloc(8 * sizeof(uint8_t));
-    
     for (size_t letter = 0; letter < strlen(text); letter++) //go through all the letters
     {
-        set_bit_pattern(bytes,8,text[letter]);
+        const uint8_t * bytes = font8x8[(uint8_t)text[letter]];
         for (int8_t shift = 7; shift >= 0; shift--) //shift each letter into the buf
         {
             for (size_t digit = 0; digit < MAX7219_DIGIT_7; digit++) //make this for every digit
@@ -346,7 +344,6 @@ led_rpc_scroll_text(
             ctx.spi_led_ctx.hal->_spiled_wait(&(ctx.spi_led_ctx),100000);
         }
     }
-    free(bytes);
     free(buf);
 
     return OS_SUCCESS;
