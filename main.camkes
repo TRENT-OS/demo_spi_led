@@ -1,0 +1,56 @@
+/*
+ * Main CAmkES configuration file of the LED demo application.
+ *
+ * Copyright (C) 2020, HENSOLDT Cyber GmbH
+ */
+
+import <std_connector.camkes>;
+
+import <if_OS_Timer.camkes>;
+
+#include "RPi_SPI_LED/camkes/if_DISPLAY.camkes"
+
+#include "system_config.h"
+
+#include "TimeServer/camkes/TimeServer.camkes"
+TimeServer_COMPONENT_DEFINE(TimeServer)
+
+#include "RPi_SPI_LED/camkes/RPi_SPI_LED.camkes"
+RPi_SPI_LED_COMPONENT_DEFINE(LED)
+RPi_SPI_LED_HW_COMPONENT_DEFINE(LED_HW)
+
+#include "Client/Client.camkes"
+CLIENT_COMPONENT_DEFINE(Client)
+
+assembly{
+    composition{
+        component LED led;
+        component LED_HW led_hw;
+        component Client client;
+
+        RPi_SPI_LED_INSTANCE_CONNECT(
+            led,
+            led_hw
+        )
+
+        connection seL4RPCCall conn(from client.led_rpc, to led.led_rpc);
+
+        //----------------------------------------------------------------------
+        // TimeServer
+        //----------------------------------------------------------------------
+        component TimeServer timeServer;
+
+        TimeServer_INSTANCE_CONNECT_CLIENTS(
+            timeServer,
+            led.timeServer_rpc, led.timeServer_notify
+        )
+    }
+
+    configuration{
+        TimeServer_CLIENT_ASSIGN_BADGES(
+            led.timeServer_rpc
+        )
+
+        RPi_SPI_LED_HW_INSTANCE_CONFIGURE_SELF(led_hw)
+    }
+}

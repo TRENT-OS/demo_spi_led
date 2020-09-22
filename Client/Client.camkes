@@ -1,0 +1,9 @@
+/*
+ * Copyright (C) 2020, HENSOLDT Cyber GmbH
+ */
+
+#define CLIENT_COMPONENT_DEFINE(_type_) \
+    component _type_ { \
+        control; \
+        uses if_DISPLAY led_rpc; \
+    }
