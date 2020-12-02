@@ -21,13 +21,13 @@ DeclareCAmkESComponent(
         os_core_api
 )
 
-DeclareCAmkESComponent_RPI_SPI_LED(
+RPi_SPI_LED_DeclareCAmkESComponent(
     LED
     LIBS
         TimeServer_client
 )
 
-DeclareCAmkESComponent_TimeServer(
+TimeServer_DeclareCAmkESComponent(
     TimeServer
 )
 

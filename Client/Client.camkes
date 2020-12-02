@@ -1,4 +1,4 @@
-#define DECLARE_COMPONENT_CLIENT(_type_) \
+#define CLIENT_COMPONENT_DEFINE(_type_) \
     component _type_ { \
         control; \
         uses if_DISPLAY led_rpc; \
